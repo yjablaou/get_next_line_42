@@ -6,120 +6,92 @@
 /*   By: yojablao <yojablao@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/22 11:14:29 by yojablao          #+#    #+#             */
-/*   Updated: 2024/01/06 01:16:41 by yojablao         ###   ########.fr       */
+/*   Updated: 2024/01/17 08:02:57 by yojablao         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "get_next_line.h"
 
-char	*get_rest(char *sat)
+char	*check_line(char	*old)
 {
-	int i;
-	char *re;
-	i = 0;
-	if(!sat)
-		return(NULL);
-	while(sat[i] != '\n' && sat[i])
-		i++;
-	if(sat[i] == '\n')
-		i++;
-	re = malloc(i+1);
-	if(!re)
-	{
-		free(sat);
-		return(NULL);
-	}
-	ft_strcpy(re,sat+i);
-	free(sat);
-	return(re);
-}
-char	*get__line(char	*sat)
-{
-	int i;
-	char *re;
-	int c;
+	char	*new;
+	int		i;
+	int		j;
 
-	if(!sat)
-		return(NULL);
-	i =0;
-	c = -1;
-	while(sat[i] && sat[i] != '\n')
-		i++;
-	if(sat[i] == '\n')
-		i++;
-	re = malloc(i+1);
-	if(!re)
+	j = 0;
+	i = 0;
+	if (old[i] == '\0' || !old)
 		return (NULL);
-	while(++c<i)
-		re[c] = sat[c];
-	re[c] = '\0';
-	if(!*re)
-        return(free(re),free(sat),NULL);
-	return(re);
-}
-int	find_line(char *buffer)
-{
-	int i;
-	i = 0;
-	if(!buffer)
-        return(1);
-	while(buffer[i])
+	while (old[i] != '\n' && old[i])
+		i++;
+	if (old[i] == '\n')
+		i++;
+	new = malloc(ft_strlen(old) - i + 1);
+	while (old[i] != '\0')
 	{
-		if(buffer[i] == '\n')
-				return(0);
+		new[j] = old[i];
+		j++;
 		i++;
 	}
-	return(1);
+	new[j] = '\0';
+	free(old);
+	return (new);
 }
-char *get_next_line(int fd)
+
+char	*extract_line(char *rez)
 {
-	static char *sat;
-    char *ret;
-    char *temp;
-    ssize_t l;
+	int		i;
+	char	*line;
+	int		j;
 
-    l = 1;
-	if(fd < 0 || BUFFER_SIZE < 1)
-		return(NULL);
-    while(l && find_line(sat) &&  l != 0)
-    {
-        temp = malloc(sizeof(char) * BUFFER_SIZE + 1);
-        if(!temp)
-            return(NULL);
-        l = read(fd,temp,BUFFER_SIZE);
-        if(!l)
-		{
-			free(temp);
-           break;
-		}
-        if(l == -1)
-            return(free(temp),NULL);
-        temp[l] = '\0';
-        sat = strjoin(sat, temp);
-		if(!sat)
-			return(NULL);
-    }
-    ret = get__line(sat);
-	if(!ret)
-		return(NULL);
-    sat = get_rest(sat);
-	if(!sat)
-		return(NULL);
-    return(ret);
+	i = 0;
+	if (rez[i] == '\0' || !rez)
+		return (NULL);
+	while (rez[i] != '\0' && rez[i] != '\n')
+		i++;
+	if (rez[i] == '\n')
+		i++;
+	line = malloc(i + 1);
+	j = -1;
+	while (++j < i)
+		line[j] = rez[j];
+	line[i] = '\0';
+	return (line);
 }
-int main() {
-	int file_descriptor;
-	const char *file_name = "game.txt";
 
-	file_descriptor = open(file_name, O_RDONLY);
-	printf("%s",get_next_line(file_descriptor));
-	printf("%s",get_next_line(file_descriptor));
-	printf("%s",get_next_line(file_descriptor));
-	printf("%s",get_next_line(file_descriptor));
-	printf("%s",get_next_line(file_descriptor));
-	printf("%s",get_next_line(file_descriptor));
-	printf("%s",get_next_line(file_descriptor));
-	printf("%s",get_next_line(file_descriptor));
-	
-	return 0;
+char	*readfd(char **buffer, int fd)
+{
+	char	*r;
+	size_t	l;
+
+	l = 1;
+	r = malloc(BUFFER_SIZE +1);
+	if (!r)
+		return (NULL);
+	while (l && !ft_strchr(*buffer, '\n'))
+	{
+		l = read(fd, r, BUFFER_SIZE);
+		r[l] = '\0';
+		if (l < 0)
+			return (free(*buffer), free(r), *buffer = NULL, NULL);
+		*buffer = strjoin(*buffer, r);
+		if (!*buffer)
+			return (free(r), free(*buffer), NULL);
+	}
+	free(r);
+	return (extract_line(*buffer));
+}
+
+char	*get_next_line(int fd)
+{
+	static char	*rest;
+	char		*line;
+
+	if (BUFFER_SIZE < 1 || read(fd, 0, 0) < 0 || fd < 0)
+		return (NULL);
+	line = readfd(&rest, fd);
+	if (!line)
+		return (free(rest), rest = NULL, NULL);
+	rest = check_line(rest);
+	return (line);
 }
